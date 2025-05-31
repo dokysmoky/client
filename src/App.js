@@ -15,7 +15,21 @@ function App() {
   const [userId, setUserId] = useState(""); // corresponds to user_id in DB
   const [photo, setPhoto] = useState(""); // optional
   const [listingResponse, setListingResponse] = useState(null);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginResponse, setLoginResponse] = useState(null);
 
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    const res = await fetch("http://localhost:5021/users/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: loginEmail, password: loginPassword }),
+    });
+    const data = await res.json();
+    setLoginResponse(data);
+  };
+  
   // Add user POST request (no change)
   const handleAddUser = async (e) => {
     e.preventDefault();
@@ -133,6 +147,31 @@ function App() {
         <button type="submit">Add Listing</button>
       </form>
       {listingResponse && <pre>{JSON.stringify(listingResponse, null, 2)}</pre>}
+
+      <hr />
+
+<h1>Login</h1>
+<form onSubmit={handleLogin}>
+  <input
+    type="email"
+    placeholder="Email"
+    value={loginEmail}
+    onChange={(e) => setLoginEmail(e.target.value)}
+    required
+  />
+  <br />
+  <input
+    type="password"
+    placeholder="Password"
+    value={loginPassword}
+    onChange={(e) => setLoginPassword(e.target.value)}
+    required
+  />
+  <br />
+  <button type="submit">Login</button>
+</form>
+{loginResponse && <pre>{JSON.stringify(loginResponse, null, 2)}</pre>}
+
     </div>
   );
 }
