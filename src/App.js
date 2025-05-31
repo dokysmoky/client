@@ -201,6 +201,81 @@ function RegisterForm({ setLoggedInUser }) {
     </form>
   );
 }
+function Listings({ listings, loggedInUser, setLoggedInUser }) {
+  const handleAddToWishlist = async (productId) => {
+    if (!loggedInUser) return;
+
+    try {
+      const res = await fetch("http://localhost:5021/wishlist/add", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: loggedInUser.id,
+          listingId: productId,
+        }),
+      });
+
+      if (res.ok) {
+        const updatedUser = await res.json();
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        setLoggedInUser(updatedUser);
+      } else {
+        console.error("Failed to add to wishlist");
+      }
+    } catch (err) {
+      console.error("Error adding to wishlist", err);
+    }
+  };
+
+  return (
+    <>
+      <h2>Listings</h2>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
+        {listings.map((listing) => (
+          <div
+            key={listing.product_id}
+            style={{
+              border: "1px solid #ccc",
+              borderRadius: "8px",
+              padding: "10px",
+              width: "300px",
+            }}
+          >
+            <h3>{listing.listing_name}</h3>
+            <img
+              src={listing.photo || "https://via.placeholder.com/200"}
+              alt={listing.listing_name}
+              style={{ width: "100%", height: "auto" }}
+            />
+            <p>
+              <strong>Price:</strong> €{Number(listing.price).toFixed(2)}
+            </p>
+            <p>
+              <strong>Condition:</strong> {listing.condition}
+            </p>
+            <p>{listing.description}</p>
+
+            {loggedInUser ? (
+              <>
+                <button onClick={() => handleAddToWishlist(listing.product_id)}>
+                  ❤️ Wishlist
+                </button>
+                <button>🛒 Buy</button>
+                <Comments productId={listing.product_id} loggedInUser={loggedInUser} />
+              </>
+            ) : (
+              <p style={{ fontStyle: "italic" }}>Login to interact</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
+/*
 // Listings Component
 function Listings({ listings, loggedInUser }) {
   return (
@@ -235,7 +310,7 @@ function Listings({ listings, loggedInUser }) {
               <>
                 <button>❤️ Wishlist</button>
                 <button>🛒 Buy</button>
-                {/* 💬 Comment section */}
+                {/* 💬 Comment section }
                 <Comments productId={listing.product_id} loggedInUser={loggedInUser} />
               </>
             ) : (
@@ -304,7 +379,82 @@ function Profile({ loggedInUser }) {
       )}
     </div>
   );
+}*/
+function Profile({ loggedInUser }) {
+  if (!loggedInUser) return <p>Please log in to see your profile.</p>;
+
+  const {
+    name,
+    surname,
+    username,
+    email,
+    wishlist,
+    address,
+    bio,
+    age,
+    profilePicture,
+  } = loggedInUser;
+
+  return (
+    <div>
+      <h2>Your Profile</h2>
+      <img
+        src={profilePicture || "https://via.placeholder.com/150"}
+        alt={`${username}'s profile`}
+        style={{ width: 150, borderRadius: "50%" }}
+      />
+      <p>
+        <strong>Name:</strong> {name} {surname}
+      </p>
+      <p>
+        <strong>Username:</strong> {username}
+      </p>
+      <p>
+        <strong>Email:</strong> {email}
+      </p>
+      <p>
+        <strong>Age:</strong> {age || "N/A"}
+      </p>
+      <p>
+        <strong>Address:</strong> {address || "N/A"}
+      </p>
+      <p>
+        <strong>Bio:</strong> {bio || "No bio set"}
+      </p>
+
+      <h3>Your Wishlist</h3>
+      {wishlist && wishlist.length > 0 ? (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
+          {wishlist.map((item) => (
+            <div
+              key={item.product_id}
+              style={{
+                border: "1px solid #ccc",
+                borderRadius: "8px",
+                padding: "10px",
+                width: "250px",
+              }}
+            >
+              <h4>{item.listing_name}</h4>
+              <img
+                src={item.photo || "https://via.placeholder.com/200"}
+                alt={item.listing_name}
+                style={{ width: "100%", height: "auto" }}
+              />
+              <p>
+                <strong>Price:</strong>{" "}
+                {item.price ? `€${Number(item.price).toFixed(2)}` : "N/A"}
+              </p>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p>Your wishlist is empty.</p>
+      )}
+    </div>
+  );
 }
+
 
 // Comments Component
 function Comments({ productId, loggedInUser }) {
