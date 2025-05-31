@@ -1,27 +1,9 @@
 import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from "react-router-dom";
 
 function App() {
   const [listings, setListings] = useState([]);
   const [loggedInUser, setLoggedInUser] = useState(null);
-
-  // For registration
-  const [username, setUsername] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [userResponse, setUserResponse] = useState(null);
-
-  // For login
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginError, setLoginError] = useState(null);
-
-  // For listing creation
-  const [listingName, setListingName] = useState("");
-  const [description, setDescription] = useState("");
-  const [condition, setCondition] = useState("");
-  const [price, setPrice] = useState("");
-  const [photo, setPhoto] = useState("");
-  const [listingResponse, setListingResponse] = useState(null);
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -36,6 +18,52 @@ function App() {
     const data = await res.json();
     setListings(data);
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem("user");
+    setLoggedInUser(null);
+  };
+
+  return (
+    <Router>
+      <div style={{ padding: 20 }}>
+        <h1>KPOP Photocard Marketplace</h1>
+
+        {loggedInUser ? (
+          <div>
+            {/* User clicks their username to go to profile */}
+            <Link to="/profile" style={{ marginRight: 10 }}>
+              Welcome, {loggedInUser.username}!
+            </Link>
+            <button onClick={handleLogout}>Logout</button>
+          </div>
+        ) : (
+          <LoginForm setLoggedInUser={setLoggedInUser} />
+        )}
+
+        <hr />
+
+        <Routes>
+          <Route
+            path="/"
+            element={<Listings listings={listings} loggedInUser={loggedInUser} />}
+          />
+          <Route
+            path="/profile"
+            element={<Profile loggedInUser={loggedInUser} />}
+          />
+          {/* Add more routes here if needed */}
+        </Routes>
+      </div>
+    </Router>
+  );
+}
+
+// LoginForm extracted for cleanliness
+function LoginForm({ setLoggedInUser }) {
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState(null);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -58,163 +86,35 @@ function App() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    setLoggedInUser(null);
-  };
-
-  const handleAddUser = async (e) => {
-    e.preventDefault();
-    const res = await fetch("http://localhost:5021/users/register", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, email, password }),
-    });
-    const data = await res.json();
-    setUserResponse(data);
-  };
-
-  const handleAddListing = async (e) => {
-    e.preventDefault();
-    if (!loggedInUser) return;
-
-    const res = await fetch("http://localhost:5021/listings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        listing_name: listingName,
-        description,
-        condition,
-        price: parseFloat(price),
-        user_id: loggedInUser.id,
-        photo,
-      }),
-    });
-
-    const data = await res.json();
-    setListingResponse(data);
-    fetchListings();
-  };
-
   return (
-    <div style={{ padding: 20 }}>
-      <h1>KPOP Photocard Marketplace</h1>
+    <form onSubmit={handleLogin}>
+      <h2>Login</h2>
+      <input
+        type="email"
+        placeholder="Email"
+        value={loginEmail}
+        onChange={(e) => setLoginEmail(e.target.value)}
+        required
+      />
+      <br />
+      <input
+        type="password"
+        placeholder="Password"
+        value={loginPassword}
+        onChange={(e) => setLoginPassword(e.target.value)}
+        required
+      />
+      <br />
+      <button type="submit">Login</button>
+      {loginError && <p style={{ color: "red" }}>{loginError}</p>}
+    </form>
+  );
+}
 
-      {loggedInUser ? (
-        <div>
-          <p>Welcome, {loggedInUser.username}!</p>
-          <button onClick={handleLogout}>Logout</button>
-        </div>
-      ) : (
-        <>
-          <form onSubmit={handleLogin}>
-            <h2>Login</h2>
-            <input
-              type="email"
-              placeholder="Email"
-              value={loginEmail}
-              onChange={(e) => setLoginEmail(e.target.value)}
-              required
-            />
-            <br />
-            <input
-              type="password"
-              placeholder="Password"
-              value={loginPassword}
-              onChange={(e) => setLoginPassword(e.target.value)}
-              required
-            />
-            <br />
-            <button type="submit">Login</button>
-            {loginError && <p style={{ color: "red" }}>{loginError}</p>}
-          </form>
-
-          <hr />
-
-          <form onSubmit={handleAddUser}>
-            <h2>Register</h2>
-            <input
-              type="text"
-              placeholder="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              required
-            />
-            <br />
-            <input
-              type="email"
-              placeholder="Email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            <br />
-            <input
-              type="password"
-              placeholder="Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            <br />
-            <button type="submit">Register</button>
-          </form>
-          {userResponse && <pre>{JSON.stringify(userResponse, null, 2)}</pre>}
-        </>
-      )}
-
-      <hr />
-
-      {loggedInUser && (
-        <form onSubmit={handleAddListing}>
-          <h2>Add New Listing</h2>
-          <input
-            type="text"
-            placeholder="Listing Name"
-            value={listingName}
-            onChange={(e) => setListingName(e.target.value)}
-            required
-          />
-          <br />
-          <textarea
-            placeholder="Description"
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-          />
-          <br />
-          <input
-            type="text"
-            placeholder="Condition"
-            value={condition}
-            onChange={(e) => setCondition(e.target.value)}
-            required
-          />
-          <br />
-          <input
-            type="number"
-            placeholder="Price"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            required
-            step="0.01"
-          />
-          <br />
-          <input
-            type="text"
-            placeholder="Photo URL (optional)"
-            value={photo}
-            onChange={(e) => setPhoto(e.target.value)}
-          />
-          <br />
-          <button type="submit">Add Listing</button>
-        </form>
-      )}
-      {listingResponse && <pre>{JSON.stringify(listingResponse, null, 2)}</pre>}
-
-      <hr />
-
-      <h2>All Listings</h2>
+function Listings({ listings, loggedInUser }) {
+  return (
+    <>
+      <h2>Listings</h2>
       <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
         {listings.map((listing) => (
           <div
@@ -232,8 +132,12 @@ function App() {
               alt={listing.listing_name}
               style={{ width: "100%", height: "auto" }}
             />
-            <p><strong>Price:</strong> €{Number(listing.price).toFixed(2)}</p>
-            <p><strong>Condition:</strong> {listing.condition}</p>
+            <p>
+              <strong>Price:</strong> €{Number(listing.price).toFixed(2)}
+            </p>
+            <p>
+              <strong>Condition:</strong> {listing.condition}
+            </p>
             <p>{listing.description}</p>
 
             {loggedInUser ? (
@@ -248,6 +152,67 @@ function App() {
           </div>
         ))}
       </div>
+    </>
+  );
+}
+
+// Profile page component
+function Profile({ loggedInUser }) {
+  // If not logged in, show a message or redirect to login
+  if (!loggedInUser) {
+    return <p>Please log in to see your profile.</p>;
+  }
+
+  // Assume these properties exist on loggedInUser object
+  const {
+    name,
+    surname,
+    username,
+    email,
+    wishlist,
+    address,
+    bio,
+    age,
+    profilePicture,
+  } = loggedInUser;
+
+  return (
+    <div>
+      <h2>Your Profile</h2>
+      <img
+        src={profilePicture || "https://via.placeholder.com/150"}
+        alt={`${username}'s profile`}
+        style={{ width: 150, borderRadius: "50%" }}
+      />
+      <p>
+        <strong>Name:</strong> {name} {surname}
+      </p>
+      <p>
+        <strong>Username:</strong> {username}
+      </p>
+      <p>
+        <strong>Email:</strong> {email}
+      </p>
+      <p>
+        <strong>Age:</strong> {age || "N/A"}
+      </p>
+      <p>
+        <strong>Address:</strong> {address || "N/A"}
+      </p>
+      <p>
+        <strong>Bio:</strong> {bio || "No bio set"}
+      </p>
+
+      <h3>Your Wishlist</h3>
+      {wishlist && wishlist.length > 0 ? (
+        <ul>
+          {wishlist.map((item) => (
+            <li key={item.id}>{item.listing_name}</li>
+          ))}
+        </ul>
+      ) : (
+        <p>Your wishlist is empty.</p>
+      )}
     </div>
   );
 }
