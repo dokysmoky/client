@@ -43,6 +43,7 @@ function App() {
       <Link to="/add-listing">Add Listing</Link>
       <Link to="/wishlist">Wishlist</Link> {}
       <Link to="/profile">Welcome, {loggedInUser.username}!</Link>
+      <Link to="/cart">Cart</Link>
       <button onClick={handleLogout}>Logout</button>    </>
   ) : (
     <>
@@ -78,19 +79,16 @@ function App() {
             element={<RegisterForm setLoggedInUser={setLoggedInUser} />}
           />
           <Route
-  path="/add-listing"
-  element={
-    <AddListingForm
-      loggedInUser={loggedInUser}
-      fetchListings={fetchListings}
-/>
-}
-/>
-<Route
-  path="/wishlist"
-  element={<Wishlist loggedInUser={loggedInUser} />}
-/>
-
+            path="/add-listing"
+            element={<AddListingForm logedInUser={loggedInUser} fetchListings={fetchListings}/>}
+          />
+          <Route
+            path="/wishlist"
+            element={<Wishlist loggedInUser={loggedInUser} />}
+            />
+          <Route 
+           path="/cart"
+           element={<Cart loggedInUser={loggedInUser} />} />
 
         </Routes>
       </div>
@@ -214,7 +212,47 @@ function RegisterForm({ setLoggedInUser }) {
 
 // ---------- LISTINGS ----------
 function Listings({ listings, loggedInUser, setLoggedInUser }) {
-  const handleAddToWishlist = async (productId) => {
+
+  const handleAddToCart = async (productId) => {
+  if (!loggedInUser) {
+    alert("You must be logged in to add to cart");
+    return;
+  }
+
+  try {
+    const res = await fetch("http://localhost:5021/cart", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: loggedInUser.user_id,
+        product_id: productId,
+      }),
+    });
+    const data = await res.json(); // Parse the response
+
+    if (res.ok) {
+      if (data.alreadyExists) {
+        alert("You have already added this item to your cart");
+      } else {
+        alert("Item added to cart");
+      }
+    } else {
+      throw new Error(data.error || "Failed to add to wishlist");
+    }
+  } catch (err) {
+    console.error("Error adding to wishlist:", err); 
+    alert("Could not add to wishlist");
+  }
+};
+   /*f (!res.ok) throw new Error("Failed to add to cart");
+    alert("Item added to cart!");
+  } catch (err) {
+    console.error("Error adding to cart:", err);
+    alert("Could not add to cart");
+  }
+};*/
+
+const handleAddToWishlist = async (productId) => {
   if (!loggedInUser) {
     alert("You must be logged in to add to wishlist");
     return;
@@ -230,9 +268,17 @@ function Listings({ listings, loggedInUser, setLoggedInUser }) {
       }),
     });
 
-    if (!res.ok) throw new Error("Failed to add to wishlist");
+    const data = await res.json(); // Parse the response
 
-    alert("Item added to wishlist!");
+    if (res.ok) {
+      if (data.alreadyExists) {
+        alert("You have already added this item to your wishlist.");
+      } else {
+        alert("Item added to wishlist!");
+      }
+    } else {
+      throw new Error(data.error || "Failed to add to wishlist");
+    }
   } catch (err) {
     console.error("Error adding to wishlist:", err);
     alert("Could not add to wishlist");
@@ -258,7 +304,7 @@ function Listings({ listings, loggedInUser, setLoggedInUser }) {
             {loggedInUser ? (
               <div className="listing-actions">
                 <button onClick={() => handleAddToWishlist(listing.product_id)}>❤️ Wishlist</button>
-                <button>🛒 Buy</button>
+                <button onClick={() => handleAddToCart(listing.product_id)}>🛒 Buy</button>
                 <Comments productId={listing.product_id} loggedInUser={loggedInUser} />
               </div>
             ) : (
@@ -275,7 +321,7 @@ function Listings({ listings, loggedInUser, setLoggedInUser }) {
 function Profile({ loggedInUser }) {
   if (!loggedInUser) return <p>Please log in to see your profile.</p>;
 
-  const { name, surname, username, email, wishlist, address, bio, age, profilePicture } = loggedInUser;
+  const { name, surname, username, email, address, bio, age, profilePicture } = loggedInUser;
 
   return (
     <div>
@@ -292,20 +338,7 @@ function Profile({ loggedInUser }) {
       <p><strong>Address:</strong> {address || "N/A"}</p>
       <p><strong>Bio:</strong> {bio || "No bio set"}</p>
 
-      <h3>Your Wishlist</h3>
-      {wishlist && wishlist.length > 0 ? (
-        <div style={{ display: "flex", gap: "20px", flexWrap: "wrap" }}>
-          {wishlist.map((item) => (
-            <div className="listing-card" key={item.product_id}>
-              <h4>{item.listing_name}</h4>
-              <img src={item.photo || "https://via.placeholder.com/200"} alt={item.listing_name} />
-              <p><strong>Price:</strong> €{Number(item.price).toFixed(2)}</p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <p>Your wishlist is empty.</p>
-      )}
+      
     </div>
   );
 }
@@ -495,6 +528,73 @@ function Wishlist({ loggedInUser }) {
               <p><strong>Price:</strong> €{Number(item.price).toFixed(2)}</p>
               <p><strong>Condition:</strong> {item.condition}</p>
               <p>{item.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+function Cart({ loggedInUser }) {
+  const [cartItems, setCartItems] = useState([]);
+
+  useEffect(() => {
+    if (!loggedInUser) return;
+
+    const fetchCart = async () => {
+      try {
+        const res = await fetch(`http://localhost:5021/cart/${loggedInUser.user_id}`);
+        if (!res.ok) throw new Error("Failed to fetch cart");
+        const data = await res.json();
+        setCartItems(data);
+      } catch (err) {
+        console.error("Error loading cart:", err);
+      }
+    };
+
+    fetchCart();
+  }, [loggedInUser]);
+
+  if (!loggedInUser) {
+    return <p>Please log in to view your cart.</p>;
+  }
+
+const handleRemove = async (productId) => {
+    try {
+      const res = await fetch("http://localhost:5021/cart", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: loggedInUser.user_id,
+          product_id: productId,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to remove item");
+      setCartItems((prev) => prev.filter((item) => item.product_id !== productId));
+    } catch (err) {
+      console.error("Error removing from cart:", err);
+      alert("Could not remove item");
+    }
+  };
+
+  return (
+    <div>
+      <h2>Your Cart</h2>
+      {cartItems.length === 0 ? (
+        <p>Your cart is empty.</p>
+      ) : (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
+          {cartItems.map((item) => (
+            <div className="listing-card" key={item.product_id}>
+              <h3>{item.listing_name}</h3>
+              <img
+                src={item.photo || "https://via.placeholder.com/200"}
+                alt={item.listing_name}
+              />
+              <p><strong>Price:</strong> €{Number(item.price).toFixed(2)}</p>
+              <p><strong>Quantity:</strong> {item.quantity}</p>
+              <button onClick={() => handleRemove(item.product_id)}>❌ Remove</button>
             </div>
           ))}
         </div>
