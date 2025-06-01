@@ -75,9 +75,15 @@ function App() {
             element={<RegisterForm setLoggedInUser={setLoggedInUser} />}
           />
           <Route
-            path="/add-listing"
-            element={<AddListingForm loggedInUser={loggedInUser} />}
-          />
+  path="/add-listing"
+  element={
+    <AddListingForm
+      loggedInUser={loggedInUser}
+      fetchListings={fetchListings}
+/>
+}
+/>
+
         </Routes>
       </div>
     </Router>
@@ -349,7 +355,7 @@ function Comments({ productId, loggedInUser }) {
 }
 
 // ---------- ADD LISTING ----------
-function AddListingForm({ loggedInUser }) {
+function AddListingForm({ loggedInUser, fetchListings }) {
   const navigate = useNavigate();
   const [listingData, setListingData] = useState({
     listing_name: "",
@@ -381,6 +387,7 @@ function AddListingForm({ loggedInUser }) {
       });
 
       if (res.ok) {
+          await fetchListings(); 
         navigate("/");
       } else {
         const err = await res.json();
