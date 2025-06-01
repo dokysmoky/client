@@ -36,3 +36,111 @@
     transform: rotate(360deg);
   }
 }
+
+/* App.css - KPOP pastel aesthetic */
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(to right, #ffeaf4, #e3f6fd);
+  margin: 0;
+  padding: 0;
+  color: #333;
+}
+
+h1, h2, h3, h4 {
+  color: #c94f7c;
+}
+
+a {
+  text-decoration: none;
+  color: #7a57d1;
+  font-weight: bold;
+}
+
+nav a {
+  margin-right: 15px;
+}
+
+nav button {
+  background: #ff8fab;
+  border: none;
+  border-radius: 20px;
+  padding: 6px 12px;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+  margin-left: 5px;
+}
+
+nav button:hover {
+  background-color: #f46aa0;
+}
+
+form {
+  background-color: #ffffffdd;
+  padding: 20px;
+  border-radius: 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  width: 300px;
+  margin: auto;
+}
+
+form input, form textarea {
+  width: 100%;
+  padding: 8px;
+  margin: 5px 0 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 10px;
+}
+
+form button {
+  background-color: #9cafff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 15px;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+form button:hover {
+  background-color: #7d91f0;
+}
+
+.listing-card {
+  background-color: #fff;
+  border: 2px solid #f5d9ea;
+  border-radius: 20px;
+  padding: 15px;
+  width: 280px;
+  box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+}
+
+.listing-card img {
+  border-radius: 12px;
+  max-height: 180px;
+  object-fit: cover;
+}
+
+.listing-actions button {
+  margin-top: 10px;
+  margin-right: 5px;
+  padding: 6px 10px;
+  border-radius: 10px;
+  border: none;
+  background-color: #ffc6e3;
+  color: #222;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.listing-actions button:hover {
+  background-color: #f9a7d4;
+}
+
+.comment-box {
+  background-color: #fff5fc;
+  padding: 10px;
+  border-radius: 12px;
+  margin-top: 10px;
+}
