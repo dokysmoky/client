@@ -35,21 +35,24 @@ function App() {
     <Router>
       <div className="App">
         <h1>KPOP Photocard Marketplace</h1>
-        <nav>
-          <Link to="/">Home</Link>
-          {loggedInUser ? (
-            <>
-              <Link to="/add-listing">Add Listing</Link>
-              <Link to="/profile">Welcome, {loggedInUser.username}!</Link>
-              <button onClick={handleLogout}>Logout</button>
-            </>
-          ) : (
-            <>
-              <Link to="/login">Login</Link>
-              <Link to="/register">Register</Link>
-            </>
-          )}
-        </nav>
+
+      <nav>
+  <Link to="/">Home</Link> {}
+  {loggedInUser ? (
+    <>
+      <Link to="/add-listing">Add Listing</Link>
+      <Link to="/wishlist">Wishlist</Link> {}
+      <Link to="/profile">Welcome, {loggedInUser.username}!</Link>
+      <button onClick={handleLogout}>Logout</button>    </>
+  ) : (
+    <>
+      <Link to="/login">Login</Link>
+      <Link to="/register">Register</Link>
+    </>
+  )}
+</nav>
+
+
 
         <Routes>
           <Route
@@ -83,6 +86,11 @@ function App() {
 />
 }
 />
+<Route
+  path="/wishlist"
+  element={<Wishlist loggedInUser={loggedInUser} />}
+/>
+
 
         </Routes>
       </div>
@@ -207,25 +215,30 @@ function RegisterForm({ setLoggedInUser }) {
 // ---------- LISTINGS ----------
 function Listings({ listings, loggedInUser, setLoggedInUser }) {
   const handleAddToWishlist = async (productId) => {
-    if (!loggedInUser) return;
-    try {
-      const res = await fetch("http://localhost:5021/wishlist/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: loggedInUser.user_id,
-          listingId: productId,
-        }),
-      });
-      if (res.ok) {
-        const updatedUser = await res.json();
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-        setLoggedInUser(updatedUser);
-      }
-    } catch (err) {
-      console.error("Error adding to wishlist", err);
-    }
-  };
+  if (!loggedInUser) {
+    alert("You must be logged in to add to wishlist");
+    return;
+  }
+
+  try {
+    const res = await fetch("http://localhost:5021/wishlist", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: loggedInUser.user_id,
+        product_id: productId,
+      }),
+    });
+
+    if (!res.ok) throw new Error("Failed to add to wishlist");
+
+    alert("Item added to wishlist!");
+  } catch (err) {
+    console.error("Error adding to wishlist:", err);
+    alert("Could not add to wishlist");
+  }
+};
+
 
   return (
     <>
@@ -441,5 +454,54 @@ function AddListingForm({ loggedInUser, fetchListings }) {
     </form>
   );
 }
+function Wishlist({ loggedInUser }) {
+  const [wishlistItems, setWishlistItems] = useState([]);
+
+  useEffect(() => {
+    if (!loggedInUser) return;
+
+    const fetchWishlist = async () => {
+      try {
+        const res = await fetch(`http://localhost:5021/wishlist/${loggedInUser.user_id}`);
+        if (!res.ok) throw new Error("Failed to fetch wishlist");
+        const data = await res.json();
+        setWishlistItems(data);
+      } catch (err) {
+        console.error("Error loading wishlist:", err);
+      }
+    };
+
+    fetchWishlist();
+  }, [loggedInUser]);
+
+  if (!loggedInUser) {
+    return <p>Please log in to view your wishlist.</p>;
+  }
+
+  return (
+    <div>
+      <h2>Your Wishlist</h2>
+      {wishlistItems.length === 0 ? (
+        <p>Your wishlist is empty.</p>
+      ) : (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
+          {wishlistItems.map((item) => (
+            <div className="listing-card" key={item.product_id}>
+              <h3>{item.listing_name}</h3>
+              <img
+                src={item.photo || "https://via.placeholder.com/200"}
+                alt={item.listing_name}
+              />
+              <p><strong>Price:</strong> €{Number(item.price).toFixed(2)}</p>
+              <p><strong>Condition:</strong> {item.condition}</p>
+              <p>{item.description}</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 
 export default App;
