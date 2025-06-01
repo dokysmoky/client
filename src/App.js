@@ -80,7 +80,7 @@ function App() {
           />
           <Route
             path="/add-listing"
-            element={<AddListingForm logedInUser={loggedInUser} fetchListings={fetchListings}/>}
+            element={<AddListingForm loggedInUser={loggedInUser} fetchListings={fetchListings}/>}
           />
           <Route
             path="/wishlist"
@@ -211,7 +211,7 @@ function RegisterForm({ setLoggedInUser }) {
 }
 
 // ---------- LISTINGS ----------
-function Listings({ listings, loggedInUser, setLoggedInUser }) {
+/*function Listings({ listings, loggedInUser, setLoggedInUser }) {
 
   const handleAddToCart = async (productId) => {
   if (!loggedInUser) {
@@ -226,6 +226,7 @@ function Listings({ listings, loggedInUser, setLoggedInUser }) {
       body: JSON.stringify({
         user_id: loggedInUser.user_id,
         product_id: productId,
+        quantity: 1
       }),
     });
     const data = await res.json(); // Parse the response
@@ -237,20 +238,14 @@ function Listings({ listings, loggedInUser, setLoggedInUser }) {
         alert("Item added to cart");
       }
     } else {
-      throw new Error(data.error || "Failed to add to wishlist");
+      throw new Error(data.error || "Failed to add to cart");
     }
   } catch (err) {
-    console.error("Error adding to wishlist:", err); 
-    alert("Could not add to wishlist");
-  }
-};
-   /*f (!res.ok) throw new Error("Failed to add to cart");
-    alert("Item added to cart!");
-  } catch (err) {
-    console.error("Error adding to cart:", err);
+    console.error("Error adding to cart:", err); 
+
     alert("Could not add to cart");
   }
-};*/
+};
 
 const handleAddToWishlist = async (productId) => {
   if (!loggedInUser) {
@@ -305,6 +300,123 @@ const handleAddToWishlist = async (productId) => {
               <div className="listing-actions">
                 <button onClick={() => handleAddToWishlist(listing.product_id)}>❤️ Wishlist</button>
                 <button onClick={() => handleAddToCart(listing.product_id)}>🛒 Buy</button>
+                <Comments productId={listing.product_id} loggedInUser={loggedInUser} />
+              </div>
+            ) : (
+              <p style={{ fontStyle: "italic" }}>Login to interact</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}*/
+function Listings({ listings, loggedInUser, setLoggedInUser }) {
+  const [quantities, setQuantities] = useState({});
+
+  const handleQuantityChange = (productId, value) => {
+    setQuantities({ ...quantities, [productId]: parseInt(value) });
+  };
+
+  const handleAddToCart = async (productId) => {
+    if (!loggedInUser) {
+      alert("You must be logged in to add to cart");
+      return;
+    }
+
+    const quantity = quantities[productId] || 1;
+
+    try {
+      const res = await fetch("http://localhost:5021/cart", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: loggedInUser.user_id,
+          product_id: productId,
+          quantity: quantity,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        if (data.alreadyExists) {
+          alert("You have already added this item to your cart");
+        } else {
+          alert("Item added to cart");
+        }
+      } else {
+        throw new Error(data.error || "Failed to add to cart");
+      }
+    } catch (err) {
+      console.error("Error adding to cart:", err);
+      alert("Could not add to cart");
+    }
+  };
+
+  const handleAddToWishlist = async (productId) => {
+    if (!loggedInUser) {
+      alert("You must be logged in to add to wishlist");
+      return;
+    }
+
+    try {
+      const res = await fetch("http://localhost:5021/wishlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: loggedInUser.user_id,
+          product_id: productId,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        if (data.alreadyExists) {
+          alert("You have already added this item to your wishlist.");
+        } else {
+          alert("Item added to wishlist!");
+        }
+      } else {
+        throw new Error(data.error || "Failed to add to wishlist");
+      }
+    } catch (err) {
+      console.error("Error adding to wishlist:", err);
+      alert("Could not add to wishlist");
+    }
+  };
+
+  return (
+    <>
+      <h2>Listings</h2>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
+        {listings.map((listing) => (
+          <div className="listing-card" key={listing.product_id}>
+            <h3>{listing.listing_name}</h3>
+            <img
+              src={listing.photo || "https://via.placeholder.com/200"}
+              alt={listing.listing_name}
+            />
+            <p><strong>Price:</strong> €{Number(listing.price).toFixed(2)}</p>
+            <p><strong>Condition:</strong> {listing.condition}</p>
+            <p>{listing.description}</p>
+
+            {loggedInUser ? (
+              <div className="listing-actions">
+                <button onClick={() => handleAddToWishlist(listing.product_id)}>❤️ Wishlist</button>
+
+                <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "5px" }}>
+                  <input
+                    type="number"
+                    min="1"
+                    value={quantities[listing.product_id] || 1}
+                    onChange={(e) => handleQuantityChange(listing.product_id, e.target.value)}
+                    style={{ width: "60px" }}
+                  />
+                  <button onClick={() => handleAddToCart(listing.product_id)}>🛒 Buy</button>
+                </div>
+
                 <Comments productId={listing.product_id} loggedInUser={loggedInUser} />
               </div>
             ) : (
@@ -559,7 +671,7 @@ function Cart({ loggedInUser }) {
     return <p>Please log in to view your cart.</p>;
   }
 
-const handleRemove = async (productId) => {
+  const handleRemove = async (productId) => {
     try {
       const res = await fetch("http://localhost:5021/cart", {
         method: "DELETE",
