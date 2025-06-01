@@ -329,87 +329,102 @@ function Listings({ listings, loggedInUser, setLoggedInUser }) {
 }
 
 // ---------- PROFILE ----------
+
 function Profile({ loggedInUser }) {
+  const [editing, setEditing] = useState(false);
+  const [formData, setFormData] = useState({
+    bio: loggedInUser?.bio || "",
+    address: loggedInUser?.address || "",
+    profilePicture: loggedInUser?.profilePicture || "",
+  });
+
+  const handleChange = (e) => {
+    const { name, value, files } = e.target;
+    if (name === "profilePictureFile" && files.length > 0) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData({ ...formData, profilePicture: reader.result });
+      };
+      reader.readAsDataURL(files[0]);
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
+  };
+
+  const handleSave = async () => {
+    const res = await fetch(`http://localhost:5021/users/${loggedInUser.user_id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(formData),
+    });
+
+    if (res.ok) {
+      const updatedUser = await res.json();
+      localStorage.setItem("user", JSON.stringify(updatedUser));
+      setEditing(false);
+      window.location.reload(); // force re-render
+    } else {
+      alert("Failed to update profile");
+    }
+  };
+
   if (!loggedInUser) return <p>Please log in to see your profile.</p>;
 
-  const { name, surname, username, email, address, bio, age, profilePicture } = loggedInUser;
+  const { name, surname, username, email, age } = loggedInUser;
 
   return (
     <div>
       <h2>Your Profile</h2>
+
       <img
-        src={profilePicture || "https://via.placeholder.com/150"}
+        src={formData.profilePicture || "https://via.placeholder.com/150"}
         alt={`${username}'s profile`}
         style={{ width: "150px", borderRadius: "50%" }}
       />
+
+      {editing && (
+        <input type="file" name="profilePictureFile" accept="image/*" onChange={handleChange} />
+      )}
+
       <p><strong>Name:</strong> {name} {surname}</p>
       <p><strong>Username:</strong> {username}</p>
       <p><strong>Email:</strong> {email}</p>
       <p><strong>Age:</strong> {age || "N/A"}</p>
-      <p><strong>Address:</strong> {address || "N/A"}</p>
-      <p><strong>Bio:</strong> {bio || "No bio set"}</p>
 
-      
+      {editing ? (
+        <>
+          <div>
+            <label><strong>Address:</strong></label>
+            <input
+              name="address"
+              value={formData.address}
+              onChange={handleChange}
+            />
+          </div>
+          <div>
+            <label><strong>Bio:</strong></label>
+            <textarea
+              name="bio"
+              value={formData.bio}
+              onChange={handleChange}
+            />
+          </div>
+          <button onClick={handleSave}>Save</button>
+          <button onClick={() => setEditing(false)}>Cancel</button>
+        </>
+      ) : (
+        <>
+          <p><strong>Address:</strong> {formData.address || "N/A"}</p>
+          <p><strong>Bio:</strong> {formData.bio || "No bio set"}</p>
+          <button onClick={() => setEditing(true)}>Edit Profile</button>
+        </>
+      )}
     </div>
   );
 }
 
 // ---------- COMMENTS ----------
-/*function Comments({ productId, loggedInUser }) {
-  const [comments, setComments] = useState([]);
-  const [newComment, setNewComment] = useState("");
 
-  useEffect(() => {
-    fetch(`http://localhost:5021/comments/${productId}`)
-      .then((res) => res.json())
-      .then((data) => setComments(data));
-  }, [productId]);
-
-  const handleCommentSubmit = async (e) => {
-    e.preventDefault();
-    if (!newComment.trim()) return;
-
-    await fetch("http://localhost:5021/comments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: loggedInUser.user_id,
-        product_id: productId,
-        comment_text: newComment,
-      }),
-    });
-
-    setNewComment("");
-    const updated = await fetch(`http://localhost:5021/comments/${productId}`).then((r) =>
-      r.json()
-    );
-    setComments(updated);
-  };
-
-  return (
-    <div className="comment-box">
-      <form onSubmit={handleCommentSubmit}>
-        <textarea
-          rows="2"
-          placeholder="Leave a comment..."
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          required
-        />
-        <button type="submit">Post</button>
-      </form>
-      <ul style={{ listStyle: "none", paddingLeft: 0 }}>
-        {comments.map((comment) => (
-          <li key={comment.comment_id}>
-            <strong>{comment.username}:</strong> {comment.comment_text}
-            <br />
-            <small>{new Date(comment.comment_date).toLocaleString()}</small>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}*/
 function Comments({ productId, loggedInUser }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
@@ -442,16 +457,7 @@ function Comments({ productId, loggedInUser }) {
     fetchComments();
   };
 
- /* const handleDeleteComment = async (commentId) => {
-    const confirmDelete = window.confirm("Are you sure you want to delete this comment?");
-    if (!confirmDelete) return;
-
-    await fetch(`http://localhost:5021/comments/${commentId}`, {
-      method: "DELETE",
-    });
-
-    fetchComments();
-  };*/
+ 
 const handleDeleteComment = async (commentId) => {
   const confirmDelete = window.confirm("Are you sure you want to delete this comment?");
   if (!confirmDelete) return;
@@ -508,14 +514,31 @@ function AddListingForm({ loggedInUser, fetchListings }) {
     price: "",
     condition: "",
     description: "",
-    photo: "",
+    photo: null,
+    //photo: "",
   });
 
-  const handleChange = (e) => {
+  /*const handleChange = (e) => {
     setListingData({ ...listingData, [e.target.name]: e.target.value });
   };
+const handleChange = (e) => {
+  const { name, value, files } = e.target;
+  if (name === "photo" && files.length > 0) {
+    setListingData({ ...listingData, photo: files[0] });
+  } else {
+    setListingData({ ...listingData, [name]: value });
+  }
+};*/
+const handleChange = (e) => {
+  const { name, value, files } = e.target;
+  if (name === "photo" && files.length > 0) {
+    setListingData({ ...listingData, photo: files[0] });
+  } else {
+    setListingData({ ...listingData, [name]: value });
+  }
+};
 
-  const handleSubmit = async (e) => {
+  /*const handleSubmit = async (e) => {
     e.preventDefault();
     if (!loggedInUser || !loggedInUser.user_id) {
       alert("You must be logged in to create a listing.");
@@ -543,7 +566,43 @@ function AddListingForm({ loggedInUser, fetchListings }) {
       console.error("Error creating listing", err);
       alert("An error occurred. See console for details.");
     }
-  };
+  };*/
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  if (!loggedInUser || !loggedInUser.user_id) {
+    alert("You must be logged in to create a listing.");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("listing_name", listingData.listing_name);
+  formData.append("price", listingData.price);
+  formData.append("condition", listingData.condition);
+  formData.append("description", listingData.description);
+  formData.append("user_id", loggedInUser.user_id);
+  if (listingData.photo) {
+    formData.append("photo", listingData.photo); // actual image file
+  }
+
+  try {
+    const res = await fetch("http://localhost:5021/listings", {
+      method: "POST",
+      body: formData, // no need for content-type, browser sets it automatically
+    });
+
+    if (res.ok) {
+      await fetchListings();
+      navigate("/");
+    } else {
+      const err = await res.json();
+      alert("Failed to add listing: " + (err.error || res.statusText));
+    }
+  } catch (err) {
+    console.error("Error creating listing", err);
+    alert("An error occurred. See console for details.");
+  }
+};
 
   return (
     <form onSubmit={handleSubmit}>
@@ -578,11 +637,12 @@ function AddListingForm({ loggedInUser, fetchListings }) {
         required
       />
       <input
-        name="photo"
-        placeholder="Photo URL"
-        value={listingData.photo}
-        onChange={handleChange}
-      />
+  name="photo"
+  type="file"
+  accept="image/*"
+  onChange={handleChange}
+/>
+
       <button type="submit">Create Listing</button>
     </form>
   );
