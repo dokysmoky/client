@@ -210,107 +210,6 @@ function RegisterForm({ setLoggedInUser }) {
   );
 }
 
-// ---------- LISTINGS ----------
-/*function Listings({ listings, loggedInUser, setLoggedInUser }) {
-
-  const handleAddToCart = async (productId) => {
-  if (!loggedInUser) {
-    alert("You must be logged in to add to cart");
-    return;
-  }
-
-  try {
-    const res = await fetch("http://localhost:5021/cart", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: loggedInUser.user_id,
-        product_id: productId,
-        quantity: 1
-      }),
-    });
-    const data = await res.json(); // Parse the response
-
-    if (res.ok) {
-      if (data.alreadyExists) {
-        alert("You have already added this item to your cart");
-      } else {
-        alert("Item added to cart");
-      }
-    } else {
-      throw new Error(data.error || "Failed to add to cart");
-    }
-  } catch (err) {
-    console.error("Error adding to cart:", err); 
-
-    alert("Could not add to cart");
-  }
-};
-
-const handleAddToWishlist = async (productId) => {
-  if (!loggedInUser) {
-    alert("You must be logged in to add to wishlist");
-    return;
-  }
-
-  try {
-    const res = await fetch("http://localhost:5021/wishlist", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        user_id: loggedInUser.user_id,
-        product_id: productId,
-      }),
-    });
-
-    const data = await res.json(); // Parse the response
-
-    if (res.ok) {
-      if (data.alreadyExists) {
-        alert("You have already added this item to your wishlist.");
-      } else {
-        alert("Item added to wishlist!");
-      }
-    } else {
-      throw new Error(data.error || "Failed to add to wishlist");
-    }
-  } catch (err) {
-    console.error("Error adding to wishlist:", err);
-    alert("Could not add to wishlist");
-  }
-};
-
-
-  return (
-    <>
-      <h2>Listings</h2>
-      <div style={{ display: "flex", flexWrap: "wrap", gap: "20px" }}>
-        {listings.map((listing) => (
-          <div className="listing-card" key={listing.product_id}>
-            <h3>{listing.listing_name}</h3>
-            <img
-              src={listing.photo || "https://via.placeholder.com/200"}
-              alt={listing.listing_name}
-            />
-            <p><strong>Price:</strong> €{Number(listing.price).toFixed(2)}</p>
-            <p><strong>Condition:</strong> {listing.condition}</p>
-            <p>{listing.description}</p>
-
-            {loggedInUser ? (
-              <div className="listing-actions">
-                <button onClick={() => handleAddToWishlist(listing.product_id)}>❤️ Wishlist</button>
-                <button onClick={() => handleAddToCart(listing.product_id)}>🛒 Buy</button>
-                <Comments productId={listing.product_id} loggedInUser={loggedInUser} />
-              </div>
-            ) : (
-              <p style={{ fontStyle: "italic" }}>Login to interact</p>
-            )}
-          </div>
-        ))}
-      </div>
-    </>
-  );
-}*/
 function Listings({ listings, loggedInUser, setLoggedInUser }) {
   const [quantities, setQuantities] = useState({});
 
@@ -456,7 +355,7 @@ function Profile({ loggedInUser }) {
 }
 
 // ---------- COMMENTS ----------
-function Comments({ productId, loggedInUser }) {
+/*function Comments({ productId, loggedInUser }) {
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState("");
 
@@ -505,6 +404,95 @@ function Comments({ productId, loggedInUser }) {
             <strong>{comment.username}:</strong> {comment.comment_text}
             <br />
             <small>{new Date(comment.comment_date).toLocaleString()}</small>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}*/
+function Comments({ productId, loggedInUser }) {
+  const [comments, setComments] = useState([]);
+  const [newComment, setNewComment] = useState("");
+
+  useEffect(() => {
+    fetchComments();
+  }, [productId]);
+
+  const fetchComments = async () => {
+    const res = await fetch(`http://localhost:5021/comments/${productId}`);
+    const data = await res.json();
+    setComments(data);
+  };
+
+  const handleCommentSubmit = async (e) => {
+    e.preventDefault();
+    if (!newComment.trim()) return;
+
+    await fetch("http://localhost:5021/comments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        user_id: loggedInUser.user_id,
+        product_id: productId,
+        comment_text: newComment,
+      }),
+    });
+
+    setNewComment("");
+    fetchComments();
+  };
+
+ /* const handleDeleteComment = async (commentId) => {
+    const confirmDelete = window.confirm("Are you sure you want to delete this comment?");
+    if (!confirmDelete) return;
+
+    await fetch(`http://localhost:5021/comments/${commentId}`, {
+      method: "DELETE",
+    });
+
+    fetchComments();
+  };*/
+const handleDeleteComment = async (commentId) => {
+  const confirmDelete = window.confirm("Are you sure you want to delete this comment?");
+  if (!confirmDelete) return;
+
+  await fetch(`http://localhost:5021/comments/${commentId}`, {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ user_id: loggedInUser.user_id }),
+  });
+
+  fetchComments();
+};
+
+  return (
+    <div className="comment-box">
+      <form onSubmit={handleCommentSubmit}>
+        <textarea
+          rows="2"
+          placeholder="Leave a comment..."
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          required
+        />
+        <button type="submit">Post</button>
+      </form>
+      <ul style={{ listStyle: "none", paddingLeft: 0 }}>
+        {comments.map((comment) => (
+          <li key={comment.comment_id}>
+            <strong>{comment.username}:</strong> {comment.comment_text}
+            <br />
+            <small>{new Date(comment.comment_date).toLocaleString()}</small>
+            {loggedInUser && loggedInUser.user_id === comment.user_id && (
+              <button
+                onClick={() => handleDeleteComment(comment.comment_id)}
+                style={{ marginLeft: "10px", color: "red" }}
+              >
+                Delete
+              </button>
+            )}
           </li>
         ))}
       </ul>
