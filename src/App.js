@@ -619,6 +619,27 @@ function Wishlist({ loggedInUser }) {
     fetchWishlist();
   }, [loggedInUser]);
 
+  const handleRemoveFromWishlist = async (productId) => {
+    try {
+      const res = await fetch("http://localhost:5021/wishlist", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: loggedInUser.user_id,
+          product_id: productId,
+        }),
+      });
+
+      if (!res.ok) throw new Error("Failed to remove item");
+
+      // Remove item from UI
+      setWishlistItems((prev) => prev.filter((item) => item.product_id !== productId));
+    } catch (err) {
+      console.error("Error removing from wishlist:", err);
+      alert("Could not remove item");
+    }
+  };
+
   if (!loggedInUser) {
     return <p>Please log in to view your wishlist.</p>;
   }
@@ -640,6 +661,7 @@ function Wishlist({ loggedInUser }) {
               <p><strong>Price:</strong> €{Number(item.price).toFixed(2)}</p>
               <p><strong>Condition:</strong> {item.condition}</p>
               <p>{item.description}</p>
+              <button onClick={() => handleRemoveFromWishlist(item.product_id)}>❌ Remove</button>
             </div>
           ))}
         </div>
@@ -647,6 +669,7 @@ function Wishlist({ loggedInUser }) {
     </div>
   );
 }
+
 function Cart({ loggedInUser }) {
   const [cartItems, setCartItems] = useState([]);
 
